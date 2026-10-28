@@ -33,9 +33,10 @@ class ProgressRingHeader extends ConsumerWidget {
       if (rec.isCompleted) completedCount++;
     }
 
-    final double completionRatio = dueHabits.isEmpty
-        ? 0.0
-        : (completedCount / dueHabits.length).clamp(0.0, 1.0);
+    final bool hasDueHabits = dueHabits.isNotEmpty;
+    final double completionRatio = hasDueHabits
+        ? (completedCount / dueHabits.length).clamp(0.0, 1.0)
+        : 0.0;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -155,11 +156,11 @@ class ProgressRingHeader extends ConsumerWidget {
                     width: 90,
                     height: 90,
                     child: CircularProgressIndicator(
-                      value: completionRatio,
+                      value: hasDueHabits ? completionRatio : 0.0,
                       strokeWidth: 8,
                       backgroundColor: AppColors.border,
                       valueColor: AlwaysStoppedAnimation<Color>(
-                        completionRatio == 1.0
+                        completionRatio == 1.0 && hasDueHabits
                             ? AppColors.gold
                             : AppColors.emerald,
                       ),
@@ -170,7 +171,9 @@ class ProgressRingHeader extends ConsumerWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        '$completedCount/${dueHabits.length}',
+                        hasDueHabits
+                            ? '$completedCount/${dueHabits.length}'
+                            : '0',
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -178,10 +181,12 @@ class ProgressRingHeader extends ConsumerWidget {
                         ),
                       ),
                       Text(
-                        '${(completionRatio * 100).toInt()}%',
+                        hasDueHabits
+                            ? '${(completionRatio * 100).toInt()}%'
+                            : 'جاهز',
                         style: TextStyle(
-                          fontSize: 12,
-                          color: completionRatio == 1.0
+                          fontSize: 11,
+                          color: completionRatio == 1.0 && hasDueHabits
                               ? AppColors.gold
                               : AppColors.emerald,
                           fontWeight: FontWeight.w600,
@@ -226,7 +231,9 @@ class ProgressRingHeader extends ConsumerWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      '${commitmentIndex.toStringAsFixed(1)}%',
+                      hasDueHabits || activeHabits.isNotEmpty
+                          ? '${commitmentIndex.toStringAsFixed(1)}%'
+                          : '100%',
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.w900,
@@ -237,11 +244,13 @@ class ProgressRingHeader extends ConsumerWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      commitmentIndex >= 85
-                          ? 'قوة التزام خارقة 🛡️'
-                          : commitmentIndex >= 50
-                              ? 'ثبات وانضباط مستمر 💪'
-                              : 'في مرحلة بناء الزخم 🚀',
+                      activeHabits.isEmpty
+                          ? 'بانتظار عادتك الأولى 🚀'
+                          : commitmentIndex >= 85
+                              ? 'قوة التزام خارقة 🛡️'
+                              : commitmentIndex >= 50
+                                  ? 'ثبات وانضباط مستمر 💪'
+                                  : 'في مرحلة بناء الزخم 🚀',
                       style: const TextStyle(
                         fontSize: 11,
                         color: AppColors.textMuted,

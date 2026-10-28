@@ -5,6 +5,7 @@ import '../../../../core/utils/haptics.dart';
 import '../providers/habit_providers.dart';
 import '../widgets/habit_card.dart';
 import '../widgets/habit_form_dialog.dart';
+import '../widgets/habit_templates_sheet.dart';
 import '../widgets/progress_ring_header.dart';
 import '../widgets/rank_badge_widget.dart';
 import 'habit_detail_screen.dart';
@@ -19,9 +20,98 @@ class DashboardScreen extends ConsumerStatefulWidget {
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   String _selectedCategory = 'الكل';
 
+  void _showAddHabitOptions(BuildContext context) {
+    AppHaptics.selection();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const Text(
+                'إضافة عادة جديدة',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.emerald.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.edit_note_rounded,
+                      color: AppColors.emerald),
+                ),
+                title: const Text('إنشاء عادة مخصصة من الصفر',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: const Text('حدد الاسم والنوع والأهداف كما يناسبك تماماً'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  showDialog(
+                    context: context,
+                    builder: (dCtx) => HabitFormDialog(
+                      onSave: (newHabit) {
+                        ref.read(habitsProvider.notifier).addHabit(newHabit);
+                      },
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 8),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.gold.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.auto_stories_rounded,
+                      color: AppColors.gold),
+                ),
+                title: const Text('استعراض مكتبة القوالب الجاهزة',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: const Text('اختر من قوالب العبادات، الرياضة، والتطوير'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (_) => const HabitTemplatesSheet(),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final habits = ref.watch(habitsProvider);
+    final profile = ref.watch(profileProvider);
     final activeHabits = habits.where((h) => !h.isArchived).toList();
 
     // Extract categories
@@ -38,20 +128,34 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: AppColors.emerald.withOpacity(0.15),
+                color: AppColors.emerald.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: const Icon(Icons.shield_rounded,
                   color: AppColors.emerald, size: 22),
             ),
             const SizedBox(width: 10),
-            const Text(
-              'التـزام',
-              style: TextStyle(
-                fontWeight: FontWeight.w900,
-                fontSize: 22,
-                letterSpacing: 0.5,
-              ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'التـزام',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 20,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                if (profile.displayName.isNotEmpty)
+                  Text(
+                    'مرحباً ${profile.displayName} 👋',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.normal,
+                    ),
+                  ),
+              ],
             ),
           ],
         ),
@@ -60,17 +164,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             icon: const Icon(Icons.add_circle_outline_rounded,
                 color: AppColors.emerald, size: 28),
             tooltip: 'إضافة عادة جديدة',
-            onPressed: () {
-              AppHaptics.selection();
-              showDialog(
-                context: context,
-                builder: (ctx) => HabitFormDialog(
-                  onSave: (newHabit) {
-                    ref.read(habitsProvider.notifier).addHabit(newHabit);
-                  },
-                ),
-              );
-            },
+            onPressed: () => _showAddHabitOptions(context),
           ),
           const SizedBox(width: 8),
         ],
@@ -153,57 +247,108 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
             const SizedBox(height: 12),
 
-            // Habits List
-            if (filteredHabits.isEmpty)
+            // Habits List / Empty State
+            if (activeHabits.isEmpty)
               Container(
-                padding: const EdgeInsets.all(32),
+                padding: const EdgeInsets.all(28),
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppColors.border),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: AppColors.emerald.withValues(alpha: 0.25),
+                  ),
                 ),
                 child: Column(
                   children: [
-                    const Icon(Icons.checklist_rounded,
-                        size: 48, color: AppColors.textMuted),
-                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.emerald.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.track_changes_rounded,
+                        size: 44,
+                        color: AppColors.emerald,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                     const Text(
-                      'لا توجد عادات مسجلة بعد',
+                      'أهلاً بك في التـزام 🛡️',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: AppColors.textPrimary,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 8),
                     const Text(
-                      'اضغط على زر الإضافة وابدأ أول خطوة لبناء دبابة التزامك!',
+                      'لوحتك نظيفة ومستعدة لتبدأ رحلتك الخاصة.\nأنشئ عادتك الأولى أو استكشف قوالب جاهزة ملهمة!',
                       textAlign: TextAlign.center,
-                      style:
-                          TextStyle(fontSize: 13, color: AppColors.textSecondary),
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        showDialog(
-                          context: context,
-                          builder: (ctx) => HabitFormDialog(
-                            onSave: (newHabit) {
-                              ref
-                                  .read(habitsProvider.notifier)
-                                  .addHabit(newHabit);
-                            },
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.add, color: Colors.black),
-                      label: const Text('إضافة أول عادة',
-                          style: TextStyle(
-                              color: Colors.black, fontWeight: FontWeight.bold)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.emerald,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                        height: 1.5,
                       ),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            showDialog(
+                              context: context,
+                              builder: (ctx) => HabitFormDialog(
+                                onSave: (newHabit) {
+                                  ref
+                                      .read(habitsProvider.notifier)
+                                      .addHabit(newHabit);
+                                },
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.add, color: Colors.black, size: 18),
+                          label: const Text('عادة من الصفر',
+                              style: TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.bold)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.emerald,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        OutlinedButton.icon(
+                          onPressed: () {
+                            showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              backgroundColor: Colors.transparent,
+                              builder: (_) => const HabitTemplatesSheet(),
+                            );
+                          },
+                          icon: const Icon(Icons.auto_stories_rounded,
+                              color: AppColors.gold, size: 18),
+                          label: const Text('قوالب مقترحة',
+                              style: TextStyle(
+                                  color: AppColors.gold,
+                                  fontWeight: FontWeight.bold)),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: AppColors.gold),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -231,17 +376,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         backgroundColor: AppColors.emerald,
         foregroundColor: Colors.black,
         elevation: 6,
-        onPressed: () {
-          AppHaptics.selection();
-          showDialog(
-            context: context,
-            builder: (ctx) => HabitFormDialog(
-              onSave: (newHabit) {
-                ref.read(habitsProvider.notifier).addHabit(newHabit);
-              },
-            ),
-          );
-        },
+        onPressed: () => _showAddHabitOptions(context),
         child: const Icon(Icons.add_rounded, size: 30),
       ),
     );

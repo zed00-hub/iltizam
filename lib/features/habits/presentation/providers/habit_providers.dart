@@ -5,6 +5,7 @@ import '../../data/local_storage_service.dart';
 import '../../domain/models/habit.dart';
 import '../../domain/models/habit_record.dart';
 import '../../domain/models/user_level.dart';
+import '../../domain/models/user_profile.dart';
 import '../../domain/services/gamification_engine.dart';
 import '../../domain/services/habit_strength_calculator.dart';
 import '../../domain/services/streak_engine.dart';
@@ -20,7 +21,38 @@ final habitRepositoryProvider = Provider<HabitRepository>((ref) {
   return HabitRepository(storage);
 });
 
-// 2. Selected Date Notifier
+// 2. User Profile Notifier
+class ProfileNotifier extends Notifier<UserProfile> {
+  @override
+  UserProfile build() {
+    final repo = ref.watch(habitRepositoryProvider);
+    return repo.getProfile();
+  }
+
+  Future<void> completeOnboarding(String displayName,
+      {String? wakeTime, String? sleepTime}) async {
+    final repo = ref.read(habitRepositoryProvider);
+    final updated = state.copyWith(
+      displayName: displayName.trim(),
+      isOnboardingCompleted: true,
+      preferredWakeTime: wakeTime,
+      preferredSleepTime: sleepTime,
+    );
+    await repo.saveProfile(updated);
+    state = updated;
+  }
+
+  Future<void> updateProfile(UserProfile profile) async {
+    final repo = ref.read(habitRepositoryProvider);
+    await repo.saveProfile(profile);
+    state = profile;
+  }
+}
+
+final profileProvider =
+    NotifierProvider<ProfileNotifier, UserProfile>(ProfileNotifier.new);
+
+// 3. Selected Date Notifier
 class SelectedDateNotifier extends Notifier<DateTime> {
   @override
   DateTime build() {
@@ -35,7 +67,7 @@ class SelectedDateNotifier extends Notifier<DateTime> {
 final selectedDateProvider =
     NotifierProvider<SelectedDateNotifier, DateTime>(SelectedDateNotifier.new);
 
-// 3. Habits Notifier
+// 4. Habits Notifier
 class HabitsNotifier extends Notifier<List<Habit>> {
   @override
   List<Habit> build() {
@@ -70,7 +102,7 @@ class HabitsNotifier extends Notifier<List<Habit>> {
 final habitsProvider =
     NotifierProvider<HabitsNotifier, List<Habit>>(HabitsNotifier.new);
 
-// 4. Records Notifier
+// 5. Records Notifier
 class RecordsNotifier extends Notifier<List<HabitRecord>> {
   @override
   List<HabitRecord> build() {
@@ -100,7 +132,7 @@ class RecordsNotifier extends Notifier<List<HabitRecord>> {
     final nextCompleted = !existing.isCompleted;
     final updated = existing.copyWith(
       isCompleted: nextCompleted,
-      isFrozen: false, // If completing, clear freeze
+      isFrozen: false,
       selectedTags: selectedTags ?? existing.selectedTags,
       numericValue: numericValue ?? existing.numericValue,
       durationMinutes: durationMinutes ?? existing.durationMinutes,
@@ -151,7 +183,7 @@ class RecordsNotifier extends Notifier<List<HabitRecord>> {
 final recordsProvider =
     NotifierProvider<RecordsNotifier, List<HabitRecord>>(RecordsNotifier.new);
 
-// 5. Computed Metric Providers
+// 6. Computed Metric Providers
 final habitStreakProvider =
     Provider.family<StreakResult, Habit>((ref, habit) {
   final records = ref.watch(recordsProvider);

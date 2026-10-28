@@ -1,5 +1,6 @@
 import '../domain/models/habit.dart';
 import '../domain/models/habit_record.dart';
+import '../domain/models/user_profile.dart';
 import 'local_storage_service.dart';
 
 class HabitRepository {
@@ -7,9 +8,12 @@ class HabitRepository {
 
   HabitRepository(this._storage);
 
-  List<Habit> getAllHabits() {
-    return _storage.loadHabits();
-  }
+  // Profile
+  UserProfile getProfile() => _storage.loadProfile();
+  Future<void> saveProfile(UserProfile profile) => _storage.saveProfile(profile);
+
+  // Habits
+  List<Habit> getAllHabits() => _storage.loadHabits();
 
   Future<void> saveHabit(Habit habit) async {
     final habits = _storage.loadHabits();
@@ -27,15 +31,13 @@ class HabitRepository {
     habits.removeWhere((h) => h.id == habitId);
     await _storage.saveHabits(habits);
 
-    // Also remove related records
     final records = _storage.loadRecords();
     records.removeWhere((r) => r.habitId == habitId);
     await _storage.saveRecords(records);
   }
 
-  List<HabitRecord> getAllRecords() {
-    return _storage.loadRecords();
-  }
+  // Records
+  List<HabitRecord> getAllRecords() => _storage.loadRecords();
 
   Future<void> saveRecord(HabitRecord record) async {
     final records = _storage.loadRecords();
@@ -56,6 +58,13 @@ class HabitRepository {
     await _storage.saveRecords(records);
   }
 
+  // Backup & Restore
   String exportBackup() => _storage.exportBackupJson();
-  Future<bool> importBackup(String json) => _storage.importBackupJson(json);
+  Map<String, dynamic>? inspectBackup(String jsonStr) =>
+      _storage.inspectBackup(jsonStr);
+  Future<bool> restoreReplace(Map<String, dynamic> data) =>
+      _storage.restoreReplace(data);
+  Future<bool> restoreMerge(Map<String, dynamic> data) =>
+      _storage.restoreMerge(data);
+  Future<void> clearAll() => _storage.clearAllData();
 }

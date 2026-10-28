@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
 import 'features/habits/data/local_storage_service.dart';
 import 'features/habits/presentation/providers/habit_providers.dart';
+import 'features/habits/presentation/screens/onboarding_screen.dart';
 import 'features/main_navigation_screen.dart';
 
 void main() async {
@@ -22,11 +23,13 @@ void main() async {
   );
 }
 
-class EltizamApp extends StatelessWidget {
+class EltizamApp extends ConsumerWidget {
   const EltizamApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profile = ref.watch(profileProvider);
+
     return MaterialApp(
       title: 'التـزام - دبابة الالتزام',
       debugShowCheckedModeBanner: false,
@@ -46,7 +49,10 @@ class EltizamApp extends StatelessWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
 
-      home: const MainNavigationScreen(),
+      // First time users see Onboarding; returning users enter directly
+      home: profile.isOnboardingCompleted
+          ? const MainNavigationScreen()
+          : const OnboardingScreen(),
     );
   }
 }

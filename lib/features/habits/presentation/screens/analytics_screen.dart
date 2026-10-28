@@ -5,6 +5,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/date_utils.dart';
 import '../../domain/services/gamification_engine.dart';
 import '../providers/habit_providers.dart';
+import '../widgets/habit_templates_sheet.dart';
 
 class AnalyticsScreen extends ConsumerWidget {
   const AnalyticsScreen({super.key});
@@ -17,6 +18,8 @@ class AnalyticsScreen extends ConsumerWidget {
     final badges = ref.watch(achievementBadgesProvider);
     final habits = ref.watch(habitsProvider);
     final records = ref.watch(recordsProvider);
+
+    final bool hasNoData = habits.isEmpty;
 
     // Calculate last 7 days daily completion counts for the chart
     final now = DateTime.now();
@@ -50,7 +53,7 @@ class AnalyticsScreen extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
+              gradient: const LinearGradient(
                 colors: [
                   AppColors.surface,
                   AppColors.surfaceElevated,
@@ -60,7 +63,7 @@ class AnalyticsScreen extends ConsumerWidget {
               ),
               borderRadius: BorderRadius.circular(22),
               border: Border.all(
-                color: userLevel.badgeColor.withOpacity(0.4),
+                color: userLevel.badgeColor.withValues(alpha: 0.4),
                 width: 1.5,
               ),
             ),
@@ -111,7 +114,7 @@ class AnalyticsScreen extends ConsumerWidget {
                     color: AppColors.surface,
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: userLevel.badgeColor.withOpacity(0.4),
+                      color: userLevel.badgeColor.withValues(alpha: 0.4),
                       width: 2,
                     ),
                   ),
@@ -140,112 +143,167 @@ class AnalyticsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 20),
 
-          // Weekly Consistency Bar Chart
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'نشاط آخر 7 أيام (إجمالي العادات المنجزة)',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    Icon(Icons.bar_chart_rounded, color: AppColors.emerald),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  height: 180,
-                  child: BarChart(
-                    BarChartData(
-                      maxY: (habits.length + 1).toDouble().clamp(4.0, 20.0),
-                      barTouchData: BarTouchData(
-                        touchTooltipData: BarTouchTooltipData(
-                          getTooltipColor: (_) => AppColors.surfaceElevated,
-                        ),
-                      ),
-                      titlesData: FlTitlesData(
-                        show: true,
-                        topTitles: const AxisTitles(
-                            sideTitles: SideTitles(showTitles: false)),
-                        rightTitles: const AxisTitles(
-                            sideTitles: SideTitles(showTitles: false)),
-                        leftTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            reservedSize: 24,
-                            getTitlesWidget: (val, meta) => Text(
-                              val.toInt().toString(),
-                              style: const TextStyle(
-                                  color: AppColors.textMuted, fontSize: 10),
-                            ),
-                          ),
-                        ),
-                        bottomTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            getTitlesWidget: (val, meta) {
-                              final idx = val.toInt();
-                              if (idx >= 0 && idx < last7DaysLabels.length) {
-                                return Padding(
-                                  padding: const EdgeInsets.only(top: 6.0),
-                                  child: Text(
-                                    last7DaysLabels[idx].substring(0, 3),
-                                    style: const TextStyle(
-                                      color: AppColors.textSecondary,
-                                      fontSize: 11,
-                                    ),
-                                  ),
-                                );
-                              }
-                              return const SizedBox.shrink();
-                            },
-                          ),
-                        ),
-                      ),
-                      borderData: FlBorderData(show: false),
-                      gridData: FlGridData(
-                        show: true,
-                        drawVerticalLine: false,
-                        getDrawingHorizontalLine: (val) => FlLine(
-                          color: AppColors.border.withOpacity(0.5),
-                          strokeWidth: 1,
-                        ),
-                      ),
-                      barGroups: List.generate(last7DaysCompletions.length, (i) {
-                        return BarChartGroupData(
-                          x: i,
-                          barRods: [
-                            BarChartRodData(
-                              toY: last7DaysCompletions[i],
-                              color: last7DaysCompletions[i] > 0
-                                  ? AppColors.emerald
-                                  : AppColors.surfaceElevated,
-                              width: 18,
-                              borderRadius: const BorderRadius.vertical(
-                                  top: Radius.circular(6)),
-                            ),
-                          ],
-                        );
-                      }),
+          // If no habits exist yet, show a clean guidance card instead of an empty chart
+          if (hasNoData)
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Column(
+                children: [
+                  const Icon(Icons.insights_rounded,
+                      size: 40, color: AppColors.textMuted),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'الرسوم البيانية بانتظار إنجازاتك 📈',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 6),
+                  const Text(
+                    'بمجرد إضافة عاداتك اليومية والبدء بتسجيلها، ستظهر هنا تحليلات دقيقة لأدائك الأسبوعي وسلاسل التزامك ونسب استمرارك.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (_) => const HabitTemplatesSheet(),
+                      );
+                    },
+                    icon: const Icon(Icons.auto_stories_rounded,
+                        color: AppColors.emerald, size: 18),
+                    label: const Text('استكشف قوالب العادات الجاهزة',
+                        style: TextStyle(color: AppColors.emerald)),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: AppColors.emerald),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else ...[
+            // Weekly Consistency Bar Chart
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'نشاط آخر 7 أيام (إجمالي العادات المنجزة)',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      Icon(Icons.bar_chart_rounded, color: AppColors.emerald),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    height: 180,
+                    child: BarChart(
+                      BarChartData(
+                        maxY: (habits.length + 1).toDouble().clamp(4.0, 20.0),
+                        barTouchData: BarTouchData(
+                          touchTooltipData: BarTouchTooltipData(
+                            getTooltipColor: (_) => AppColors.surfaceElevated,
+                          ),
+                        ),
+                        titlesData: FlTitlesData(
+                          show: true,
+                          topTitles: const AxisTitles(
+                              sideTitles: SideTitles(showTitles: false)),
+                          rightTitles: const AxisTitles(
+                              sideTitles: SideTitles(showTitles: false)),
+                          leftTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              reservedSize: 24,
+                              getTitlesWidget: (val, meta) => Text(
+                                val.toInt().toString(),
+                                style: const TextStyle(
+                                    color: AppColors.textMuted, fontSize: 10),
+                              ),
+                            ),
+                          ),
+                          bottomTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              getTitlesWidget: (val, meta) {
+                                final idx = val.toInt();
+                                if (idx >= 0 && idx < last7DaysLabels.length) {
+                                  return Padding(
+                                    padding: const EdgeInsets.only(top: 6.0),
+                                    child: Text(
+                                      last7DaysLabels[idx].substring(0, 3),
+                                      style: const TextStyle(
+                                        color: AppColors.textSecondary,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  );
+                                }
+                                return const SizedBox.shrink();
+                              },
+                            ),
+                          ),
+                        ),
+                        borderData: FlBorderData(show: false),
+                        gridData: FlGridData(
+                          show: true,
+                          drawVerticalLine: false,
+                          getDrawingHorizontalLine: (val) => FlLine(
+                            color: AppColors.border.withValues(alpha: 0.5),
+                            strokeWidth: 1,
+                          ),
+                        ),
+                        barGroups: List.generate(last7DaysCompletions.length, (i) {
+                          return BarChartGroupData(
+                            x: i,
+                            barRods: [
+                              BarChartRodData(
+                                toY: last7DaysCompletions[i],
+                                color: last7DaysCompletions[i] > 0
+                                    ? AppColors.emerald
+                                    : AppColors.surfaceElevated,
+                                width: 18,
+                                borderRadius: const BorderRadius.vertical(
+                                    top: Radius.circular(6)),
+                              ),
+                            ],
+                          );
+                        }),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
+          ],
           const SizedBox(height: 24),
 
           // Achievement Badges Section
@@ -276,7 +334,7 @@ class AnalyticsScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: badge.isUnlocked
-              ? badge.color.withOpacity(0.5)
+              ? badge.color.withValues(alpha: 0.5)
               : AppColors.border,
           width: badge.isUnlocked ? 1.4 : 1.0,
         ),
@@ -288,7 +346,7 @@ class AnalyticsScreen extends ConsumerWidget {
             height: 44,
             decoration: BoxDecoration(
               color: badge.isUnlocked
-                  ? badge.color.withOpacity(0.15)
+                  ? badge.color.withValues(alpha: 0.15)
                   : AppColors.surfaceElevated,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
@@ -324,7 +382,7 @@ class AnalyticsScreen extends ConsumerWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: badge.color.withOpacity(0.15),
+                          color: badge.color.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(

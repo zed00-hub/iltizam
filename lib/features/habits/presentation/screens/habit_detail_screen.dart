@@ -100,7 +100,7 @@ class HabitDetailScreen extends ConsumerWidget {
 
               if (confirm == true && context.mounted) {
                 await ref.read(habitsProvider.notifier).deleteHabit(habit.id);
-                Navigator.of(context).pop();
+                if (context.mounted) Navigator.of(context).pop();
               }
             },
           ),
